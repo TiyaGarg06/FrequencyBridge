@@ -5,7 +5,7 @@ This module models the physical HVDC converters that connect Japan's
 eastern (50Hz) and western (60Hz) grids.
 
 The converter is the central bottleneck in the FreqBridge architecture:
-- It has a fixed physical capacity limit (e.g., 300 MW).
+- It has a fixed physical capacity limit (e.g., 1200 MW).
 - It incurs transmission losses (e.g., 2%).
 - It has a ramp rate limit (how fast the power flow can change).
 """

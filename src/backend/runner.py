@@ -43,18 +43,19 @@ class SimulationRunner:
         self.add_log("[System] Simulation reset.")
 
     def inject_cloud_shock(self):
+        """Global shock - hits both sides."""
+        self.sim.weather_gen_east.inject_shock(solar_shock=-1.0, wind_shock=-1.0)
+        self.sim.weather_gen_west.inject_shock(solar_shock=-1.0, wind_shock=-1.0)
+        self.add_log("[Weather] Global Cloud Shock injected!")
+
+    def inject_east_shock(self):
+        """East-only shock - West stays healthy, can rescue East via auction."""
         self.sim.weather_gen_east.solar_params.long_term_mean = 0.0
         self.sim.weather_gen_east.wind_params.long_term_mean = 0.0
         self.sim.weather_gen_east.solar_params.volatility = 0.0
         self.sim.weather_gen_east.wind_params.volatility = 0.0
         self.sim.weather_gen_east.inject_shock(solar_shock=-1.0, wind_shock=-1.0)
-        
-        self.sim.weather_gen_west.solar_params.long_term_mean = 0.0
-        self.sim.weather_gen_west.wind_params.long_term_mean = 0.0
-        self.sim.weather_gen_west.solar_params.volatility = 0.0
-        self.sim.weather_gen_west.wind_params.volatility = 0.0
-        self.sim.weather_gen_west.inject_shock(solar_shock=-1.0, wind_shock=-1.0)
-        self.add_log("[Weather] Massive Cloud Shock injected! CF dropping.")
+        self.add_log("[Weather] Tokyo Cloud Shock injected! East CF dropping. West stable.")
 
     def inject_wind_collapse(self):
         self.sim.weather_gen_east.solar_params.long_term_mean = 0.0
@@ -138,8 +139,8 @@ class SimulationRunner:
         for a in self.sim.agents:
             # We determine pseudo-status (Green/Yellow/Red/Purple)
             # if generation < demand -> deficit
-            gen = a.state.current_generation_mw if hasattr(a, 'state') and hasattr(a.state, 'current_generation_mw') else a.params.max_generation_mw * 0.4
-            dem = a.state.current_demand_mw if hasattr(a, 'state') and hasattr(a.state, 'current_demand_mw') else a.params.base_demand_mw
+            gen = a.current_generation_mw
+            dem = a.current_demand_mw
             
             # Simple heuristic
             status = "Green"
@@ -181,8 +182,9 @@ class SimulationRunner:
         red_agents = sum(1 for a in agents_data if a["status"] == "Red")
         blackout_risk = min(1.0, red_agents / len(agents_data)) if agents_data else 0.0
         
-        # Recovery Time (estimate based on freq deviation threshold)
-        recovery_time = 0.0
+        # Each tick = 1 real second in the runner's async loop (dt_seconds = 1.0)
+        rt = self.sim.recovery_time_ticks
+        recovery_time = rt if rt is not None else 0.0
         
         return {
             "tick": self.sim.current_tick,
@@ -213,6 +215,7 @@ class SimulationRunner:
                 },
                 "nodes": agents_data
             },
+            "last_trades": self.sim.last_trades,
             "logs": self.logs[-20:], # Only send last 20 logs
             "history": {
                 "freq_east": [h["freq_east"] for h in self.sim.history[-60:]],

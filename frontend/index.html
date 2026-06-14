@@ -51,7 +51,8 @@
                 <h2>Weather Intelligence</h2>
                 
                 <div class="weather-controls">
-                    <button id="btn-cloud-shock" class="btn action">Inject Cloud Shock</button>
+                    <button id="btn-east-shock" class="btn action">Inject Tokyo Shock</button>
+                    <button id="btn-cloud-shock" class="btn action">Inject Global Shock</button>
                     <button id="btn-wind-collapse" class="btn action">Inject Wind Collapse</button>
                 </div>
                 
@@ -98,6 +99,27 @@
                         </thead>
                         <tbody id="telemetry-body">
                             <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- LIVE AUCTION FEED -->
+            <section class="panel" style="grid-column: 1 / -1; margin-top: 0.5rem;">
+                <h2>Live Auction Feed</h2>
+                <div style="overflow-x: auto;">
+                    <table style="width:100%; border-collapse:collapse; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: #9CA3AF;">
+                                <th style="padding:0.5rem; text-align:left;">Buyer</th>
+                                <th style="padding:0.5rem; text-align:left;">Seller</th>
+                                <th style="padding:0.5rem; text-align:left;">Volume (MW)</th>
+                                <th style="padding:0.5rem; text-align:left;">Clearing Price ($/MWh)</th>
+                                <th style="padding:0.5rem; text-align:left;">Converter Used</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auction-feed-body">
+                            <tr><td colspan="5" style="padding:0.5rem; color:#4B5563;">Waiting for trades...</td></tr>
                         </tbody>
                     </table>
                 </div>

@@ -30,9 +30,7 @@ source .venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
-
-
-### Run
+```
 
 ```bash
 # Run validation spike (Phase 1)
@@ -96,7 +94,9 @@ See [docs/architecture.md](docs/architecture.md) for detailed system design.
 | Tick duration | 5m grid time | Configurable in settings.toml |
 
 ---
+## Validation
 
+The frequency ODE was validated against a synthetic disturbance spike — a -0.1 pu generation loss on the East side produces the expected under-frequency nadir and recovery curve. See `data/validation_spike.png`.
 ## License
 
 MIT

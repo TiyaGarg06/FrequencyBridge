@@ -15,6 +15,7 @@ document.getElementById('btn-start').addEventListener('click', () => postAction(
 document.getElementById('btn-pause').addEventListener('click', () => postAction('/pause'));
 document.getElementById('btn-reset').addEventListener('click', () => postAction('/reset'));
 document.getElementById('btn-cloud-shock').addEventListener('click', () => postAction('/inject/cloud'));
+document.getElementById('btn-east-shock').addEventListener('click', () => postAction('/inject/east_shock'));
 document.getElementById('btn-wind-collapse').addEventListener('click', () => postAction('/inject/wind'));
 document.getElementById('btn-pid-mode').addEventListener('click', () => postAction('/switch/pid'));
 
@@ -128,4 +129,24 @@ simStream.subscribe((state) => {
             telemetryBody.appendChild(tr);
         });
     }
+    // 4. Live Auction Feed
+const auctionBody = document.getElementById('auction-feed-body');
+if (state.last_trades && state.last_trades.length > 0) {
+    auctionBody.innerHTML = '';
+    state.last_trades.forEach(trade => {
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
+        const crossStyle = trade.cross_region 
+            ? 'color: #F59E0B; font-weight: bold;' 
+            : 'color: #6B7280;';
+        tr.innerHTML = `
+            <td style="padding:0.5rem; color:#F87171;">${trade.buyer}</td>
+            <td style="padding:0.5rem; color:#38BDF8;">${trade.seller}</td>
+            <td style="padding:0.5rem; color:#E5E7EB;">${trade.volume_mw}</td>
+            <td style="padding:0.5rem; color:#A78BFA;">$${trade.price}</td>
+            <td style="padding:0.5rem; ${crossStyle}">${trade.cross_region ? '⚡ YES' : 'No'}</td>
+        `;
+        auctionBody.appendChild(tr);
+    });
+}
 });

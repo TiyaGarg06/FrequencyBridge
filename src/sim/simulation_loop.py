@@ -39,6 +39,12 @@ class FreqBridgeSimulation:
         self.config = config
         self.current_tick = 0
         self.history: List[Dict[str, Any]] = []
+        self.recovery_start_tick = None
+        self.recovery_time_ticks = None
+        self.FREQ_DEVIATION_THRESHOLD = 0.15  # Hz — crisis begins above this
+        self.FREQ_STABLE_THRESHOLD = 0.05     # Hz — recovery confirmed below this
+        self.in_crisis = False
+        self.last_trades=[]
 
         # 1. Initialize ODE Physics
         self.freq_model = FrequencyModel()
@@ -58,7 +64,7 @@ class FreqBridgeSimulation:
         
         # 3. Initialize Grid / Converter
         self.converter = ConverterAgent(ConverterParams(
-            capacity_mw=300.0,
+            capacity_mw=1200.0,
             loss_rate=0.02,
             ramp_rate_mw_per_tick=50.0
         ))
@@ -97,6 +103,11 @@ class FreqBridgeSimulation:
         self.agents.append(MicroGridAgent(AgentParams(
             id="West_Residential", region="west", max_generation_mw=20.0, base_demand_mw=60.0, 
             battery_capacity_mwh=5.0, max_charge_rate_mw=2.0, generation_cost_mwh=40.0
+        )))
+
+        self.agents.append(MicroGridAgent(AgentParams(
+            id="East_WindFarm", region="east", max_generation_mw=80.0, base_demand_mw=5.0,
+            battery_capacity_mwh=30.0, max_charge_rate_mw=15.0, generation_cost_mwh=12.0
         )))
 
     def step(self):
@@ -155,6 +166,16 @@ class FreqBridgeSimulation:
             volume_cleared_mw = result.total_volume_cleared_mw
             price_east = result.clearing_price_east
             price_west = result.clearing_price_west
+            self.last_trades = [
+                {
+                    "buyer": t.buyer_id,
+                    "seller": t.seller_id,
+                    "volume_mw": round(t.volume_mw, 2),
+                    "price": round(t.clearing_price, 2),
+                    "cross_region": t.converter_used
+                }
+                for t in result.trades
+            ]
         else:
             # PID Baseline mode
             from src.market.pid_baseline import PIDController
@@ -211,7 +232,16 @@ class FreqBridgeSimulation:
             self.ode_state = SystemState()
             
         from src.physics.frequency_model import Disturbance
-        disturbance = Disturbance(east_pu=0.0, west_pu=0.0)
+        base_mva = 1000.0
+        east_imbalance_pu = (
+            sum(a.current_generation_mw for a in self.agents if a.params.region == "east") -
+            sum(a.current_demand_mw for a in self.agents if a.params.region == "east")
+        ) / base_mva
+        west_imbalance_pu = (
+            sum(a.current_generation_mw for a in self.agents if a.params.region == "west") -
+            sum(a.current_demand_mw for a in self.agents if a.params.region == "west")
+        ) / base_mva
+        disturbance = Disturbance(east_pu=east_imbalance_pu, west_pu=west_imbalance_pu)
 
         self.ode_state = self.freq_model.simulate_step(
             state=self.ode_state,
@@ -238,6 +268,23 @@ class FreqBridgeSimulation:
             "freq_west": west_freq
         }
         self.history.append(state)
+        # Recovery time tracking
+        east_dev = abs(east_freq - 50.0)
+        west_dev = abs(west_freq - 60.0)
+        max_dev = max(east_dev, west_dev)
+
+        if not self.in_crisis and max_dev > self.FREQ_DEVIATION_THRESHOLD:
+            self.in_crisis = True
+            self.recovery_start_tick = self.current_tick
+            self.recovery_time_ticks = None
+
+        if self.in_crisis and max_dev < self.FREQ_STABLE_THRESHOLD:
+            self.in_crisis = False
+            if self.recovery_start_tick is not None:
+                self.recovery_time_ticks = self.current_tick - self.recovery_start_tick
+
+        state["in_crisis"] = self.in_crisis
+        state["recovery_time_ticks"] = self.recovery_time_ticks
         self.current_tick += 1
 
     def run(self):

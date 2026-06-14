@@ -54,6 +54,11 @@ async def inject_wind():
     runner.inject_wind_collapse()
     return {"status": "wind shock injected"}
 
+@app.post("/inject/east_shock")
+async def inject_east_shock():
+    runner.inject_east_shock()
+    return {"status": "east cloud shock injected"}
+
 @app.post("/switch/pid")
 async def switch_pid():
     runner.switch_pid()

@@ -67,8 +67,8 @@ class BlackoutPredictor:
                 deficit_steps += 1
                 cumulative_deficit += abs(net)
                 
-        # Calculate base risk based on severity of deficit relative to total demand
-        base_prob = cumulative_deficit / cumulative_demand if cumulative_demand > 0 else 0.0
+        # Calculate base risk based on the fraction of steps in deficit
+        base_prob = deficit_steps / steps if steps > 0 else 0.0
         
         # SOC acts as a mitigant. If SOC is 1.0, prob drops. If SOC is 0.0, prob rises.
         soc_factor = 1.0 - current_battery_soc
